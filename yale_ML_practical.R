@@ -12,6 +12,7 @@
 ## vary.
 
 wd <- setwd("/Users/adamchekroud/Documents/PhD/PhD_Core/Teaching/yale_ml_workshop")
+setwd(wd)
 
 ### ########
 ### Packages
@@ -174,7 +175,7 @@ confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
 # Lets try testing our out models on the second half of the class!
 
 # Read in the second half of the class data
-df.test      <- read.csv(file.path(wd, "class_testing_data.csv"),
+df.test      <- read.csv(file.path(wd, "input/class_testing_data.csv"),
                          as.is=TRUE
                          )
 
@@ -217,7 +218,6 @@ confusionMatrix(data = test.fs1.out,
                 reference = df.test$rich
                 )
 
-# This performed even worse!
 
 # Can you think of reasons why?
 
@@ -471,7 +471,7 @@ modNoGrid <- train(x = as.matrix(df.train[, -1]),
                       # same behavior, but for 10 values
 
 print(modNoGrid)
-
+ggplot(modNoGrid)
 getTrainPerf(modNoGrid)
 
 ## Now, we explicitly explore parts of the hyperparameter space
