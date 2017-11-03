@@ -6,7 +6,7 @@
 ##############
 ######### Set working directory to the repository you downloaded
 
-setwd("~/")
+wd <- setwd("/Users/adamchekroud/Documents/PhD/PhD_Core/Teaching/yale_ml_workshop")
 
 ##############
 ##############
@@ -25,10 +25,7 @@ library(ggplot2); library(caret); library(dplyr); library(e1071)
 #     The outcome of interest here is whether they self-identify as rich
 #     The class were split into two equal groups, called training and testing
 
-# Set your working directory wherever you downloaded the folder
-wd <- setwd("/Users/adamchekroud/Documents/PhD/PhD_Core/Teaching/yale_ml_workshop")
-
-# Read in the class data
+# Read data
 df.train      <- read.csv(file.path(wd, "class_training_data.csv"), as.is=TRUE)
 df.train$rich <- as.factor(df.train$rich)
 
@@ -52,8 +49,6 @@ summary(lr1)
 #    The model failed because there were too many variables in
 #    the model and it found perfect separation
 
-# extract fitted values, see how well they predict feeling rich
-lr1.out <- fitted(lr1)
 
 # Maybe we should have tried to do feature selection. 
 # Lets try Principle Components Analysis
@@ -140,20 +135,24 @@ test.PC.out <- ifelse(test.PC.out < 0.5, "no", "yes")
 # Create a Confusion Matrix
 confusionMatrix(data = test.PC.out, reference = df.test$rich)
 
+# The accuracy is much much lower.
 
 
 ## Next we will test our simple feature selection approach
 
 # Make predictions only using predictors that had good correlations in training data
-fs1.test <- predict(fs1.lr, newdata = df.test[fs1])
-  glm(rich ~ ., family = "binomial", data = df.fs1)
-# the model fit!
+fs1.test <- predict(fs1.lr, newdata = df.test[fs1], type = "response")
+
+# Threshold the predictions
+test.fs1.out <- ifelse(fs1.test < 0.5, "no", "yes")
 
 # how did it do?
-confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
-                reference = df.fs1$rich)
+confusionMatrix(data = test.fs1.out,
+                reference = df.test$rich)
 
+# This performed even worse!
 
+# Can you think of reasons why?
 
 
 
@@ -167,11 +166,11 @@ confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
 # Really slow, computationally unstable if fitted model is complicated (only LDA ran)
 # Code for RFE is similar but worse
 
-### TODO
+
 # mySBF <- caretSBF
 # mySBF$filter <- function(score, x, y) { score <= 0.00001 }
 
-# sbf1 <- sbf(x = as.matrix(df[,2:16]), y = as.factor(df$sex),
+# sbf1 <- sbf(x = as.matrix(df.train[,2:34]), y = as.factor(df.train$rich),
 #             method = "lda",
 #             trControl = trainControl(method = "none", 
 #                                      classProbs = TRUE),
@@ -180,7 +179,6 @@ confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
 # 94% average test fold performance with small SD
 # almost all variables were kept
 # what might we do to change this? new score, multivariate filter, RFE, different scoring function
-### END TODO
 
 
 ## Another approach is to use an actual model to rank features,
@@ -188,26 +186,22 @@ confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
 
 # There is a function called createDataPartition that creates random 
 #   splits of the data, and balances class outcomes between the two splits
-set.seed(1)    # this means that we can get the same random split next time
-inSubset <- createDataPartition(df2$rich, p=0.75, list=FALSE)
-df.sub   <- df2[inSubset,]
-df.rest  <- df2[-inSubset,]
 
 # Fit a model in the subset
-mod.sub <- train(x= as.matrix(df.sub[,2:31]), y = as.factor(df.sub$rich),
+svm1 <- train(x= as.matrix(df.train[,2:34]), y = as.factor(df.train$rich),
                         method = "svmLinear")
 # How did it do? getTrainPerf will go and get the performance metrics quickly for you
-getTrainPerf(mod.sub)
+getTrainPerf(svm1)
 # can also print the model output
-print(mod.sub)
+print(svm1)
 
 # Extract variable importance from the model
-plot(varImp(mod.sub))                             # all of the predictors!
-plot(varImp(mod.sub), top = 10)                   # Just top 10, scaled
-plot(varImp(mod.sub, scale = FALSE), top = 10)    # Can have raw importance
+plot(varImp(svm1))                             # all of the predictors!
+plot(varImp(svm1), top = 10)                   # Just top 10, scaled
+plot(varImp(svm1, scale = FALSE), top = 10)    # Can have raw importance
 
 # Can extract raw coefficients for the final model
-coef(mod.sub$finalModel) %>% head()
+coef(svm1$finalModel) %>% head()
 # I would usually rank/analyse these, and then take the names of the best ones for further modeling
 
 
@@ -245,8 +239,8 @@ cvCtrl <- trainControl(method = "cv", number = 10, classProbs = TRUE)   # see he
 
 # lets see this in practice!
 set.seed(1)
-mod1 <- train(x = as.matrix(df.sub[,2:31]),
-              y = as.factor(df.sub$rich),
+mod1 <- train(x = as.matrix(df.train[,2:34]),
+              y = as.factor(df.train$rich),
               method = "lda",
               trControl = cvCtrl)
 
@@ -260,16 +254,16 @@ getTrainPerf(mod1) #not great! this is the average cross-validated performance
 ## Once you have the framework set up, changing algorithm is trivial
 #   Here is an SVM
 set.seed(1)
-mod2 <- train(x= as.matrix(df.sub[,2:31]),
-              y = as.factor(df.sub$rich),
+mod2 <- train(x= as.matrix(df.train[,2:34]),
+              y = as.factor(df.train$rich),
               method = "svmLinear2",
               trControl = cvCtrl)
 getTrainPerf(mod2) # SVM did about the same as LDA
 
 #   Here is k-NN (not run), as an example of how you can try other models
 # set.seed(2)
-# mod3 <- train(x= as.matrix(df.sub[,2:31]),
-#               y = as.factor(df.sub$rich),
+# mod3 <- train(x= as.matrix(df.train[,2:31]),
+#               y = as.factor(df.train$rich),
 #               method = "knn",
 #               trControl = cvCtrl)
 # getTrainPerf(mod3) # kNN actually did much better than other methods
@@ -292,8 +286,8 @@ names(m)[1:5]
 
 ## You can also change the cross-validation framework FYI
 # here is an example of leave-one-out CV
-# mod5 <- train(x= as.matrix(df.sub[,2:31]),
-#               y = as.factor(df.sub$rich),
+# mod5 <- train(x= as.matrix(df.train[,2:34]),
+#               y = as.factor(df.train$rich),
 #               method = "svmLinear",
 #               trControl = trainControl(method="LOOCV"))
 # # it is typically very slow. don't run it.
@@ -305,10 +299,10 @@ names(m)[1:5]
 
 ## The caret model structure can be used to predict new outcomes 
 #     there is a function called predict that you use to make predictions with a model
-mod2.out <- predict(mod2, newdata = df.rest[,2:31])
+mod2.out <- predict(mod2, newdata = df.test[,2:34])
 
-confusionMatrix(data = mod2.out, reference = df.rest$rich)
-# about 70% accuracy on the 24 people we left out
+# check accuracy on the second half of the class
+confusionMatrix(data = mod2.out, reference = df.test$rich)
 
 
 
