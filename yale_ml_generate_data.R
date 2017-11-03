@@ -30,12 +30,5 @@ df$income <- -1 * df$income
 write.csv(df[1:50, ], file.path(getwd(), "class_training_data.csv")) 
 write.csv(df[51:100, ], file.path(getwd(), "class_testing_data.csv")) 
 
-# glm(rich ~ . , data = df[1:50,], family = "binomial") %>% summary()
-
-
-# but what if we had more than 15 variables, and instead had 30?
-rand1 <- df[,2:16] + matrix(nrow = 100, ncol = 15, rnorm(15*100))
-rand2 <- df[,2:16] + matrix(nrow = 100, ncol = 15, rnorm(15*100))
-df2 <- cbind(df, rand1, rand2)
-names(df2)[17:46] <- c(paste0(names(df[2:16]), "_2"), paste0(names(df[2:16]), "_3"))
+# glm(rich ~ . , data = df[1:50,], family = "binomial") %>% summary() # LR fails (intentionally) 
 
