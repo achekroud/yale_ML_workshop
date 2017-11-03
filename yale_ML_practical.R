@@ -32,9 +32,6 @@ wd <- setwd("/Users/adamchekroud/Documents/PhD/PhD_Core/Teaching/yale_ml_worksho
 df.train      <- read.csv(file.path(wd, "class_training_data.csv"), as.is=TRUE)
 df.train$rich <- as.factor(df.train$rich)
 
-df.test      <- read.csv(file.path(wd, "class_training_data.csv"), as.is=TRUE)
-df.test$rich <- as.factor(df.train$rich)
-
 ## View data in Rstudio
 # View(df)
 
@@ -60,7 +57,8 @@ lr1.out <- fitted(lr1)
 
 # Maybe we should have tried to do feature selection. 
 # Lets try Principle Components Analysis
-df.pc <- prcomp(df.train[,-1])$x %>% as.data.frame()
+pca1  <- prcomp(df.train[,-1])
+df.pc <- pca1$x %>% as.data.frame()
 # Take top 10 components (guess)
 df.pc <- df.pc[,1:11]
 # Put rich back in
@@ -121,7 +119,43 @@ confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
 
 # Model Validation -- how do models perform on unseen data?
 
-# Lets try testing our out models 
+# Lets try testing our out models on the second half of the class!
+
+# Read in the second half of the class data
+df.test      <- read.csv(file.path(wd, "class_testing_data.csv"), as.is=TRUE)
+df.test$rich <- as.factor(df.test$rich)
+
+
+## First we will test our PCA approach
+
+# Apply the learned PCA matrix to the test data
+df.test.PC <- predict(pca1, newdata = df.test[ , -1])[,1:11] %>% as.data.frame
+
+# Predict `rich` using the PC logistic regression
+test.PC.out <- predict(pc.LR, newdata = df.test.PC, type = "response")
+
+# Threshold the predictions
+test.PC.out <- ifelse(test.PC.out < 0.5, "no", "yes")
+
+# Create a Confusion Matrix
+confusionMatrix(data = test.PC.out, reference = df.test$rich)
+
+
+
+## Next we will test our simple feature selection approach
+
+# Make predictions only using predictors that had good correlations in training data
+fs1.test <- predict(fs1.lr, newdata = df.test[fs1])
+  glm(rich ~ ., family = "binomial", data = df.fs1)
+# the model fit!
+
+# how did it do?
+confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
+                reference = df.fs1$rich)
+
+
+
+
 
 
 
