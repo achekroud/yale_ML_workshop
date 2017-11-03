@@ -103,9 +103,9 @@ df.pc$rich <- df.train$rich
 pc.LR <- glm(rich ~ ., family = "binomial", data = df.pc)
 summary(pc.LR)
 
-##  Yay! 
-##    Reducing the dimensionality of the problem (using PCA)
-##    allowed us to fit the model 
+                ##  Yay! 
+                ##    Reducing the dimensionality of the problem (using PCA)
+                ##    allowed us to fit the model 
 
 ## Lets see how well the model did! 
 
@@ -116,38 +116,51 @@ pc.LR.out <- pc.LR$fitted.values
 pc.LR.out <- ifelse(pc.LR.out < 0.5, "no", "yes")
 
 ## Confusion Matrices are really easy! Use this function!
-confusionMatrix(data = pc.LR.out, reference = df.train$rich)
+confusionMatrix(data = pc.LR.out, 
+                reference = df.train$rich
+                )
 
-## Accuracy of ~82%. This looks promising! 
-##   -- In practice, dimensionality reduction is hard.
-##      We may have got lucky here.
-
-
-
-
+                ## Accuracy of ~80%. This looks promising! 
+                ##   -- In practice, dimensionality reduction is hard.
+                ##      We may have got lucky here.
 
 
-# What if we want to try again, but keep it in original feature space (not PCs)? 
-# Lets try a univariate filter (Pearson correlation)
+
+
+
+
+## What if we want to try again, but keep it in original feature space (not PCs)? 
+## Lets try a univariate filter (Pearson correlation)
 
 # correlate each variable with the outcome
 correlations <- sapply(names(df.train)[2:34], 
-                       function(i) cor(as.numeric(df.train[,i]), as.numeric(df.train$rich)))
-# what happened?
+                       function(i) cor(as.numeric(df.train[,i]), as.numeric(df.train$rich))
+                       )
+
+                ## what happened?
+
 summary(correlations)
 
-# some modest correlations. lets only keep |z| > 0.2?
+                ## some modest correlations.
+                ## lets only keep |z| > 0.2?
+
 fs1 <- names(correlations)[(correlations > 0.2) | (correlations < -0.2)]
+
 df.fs1 <- dplyr::select(df.train, one_of(c("rich", fs1)))
 
-# Try a logistic regression but only using predictors that have good correlations
-fs1.lr <- glm(rich ~ ., family = "binomial", data = df.fs1)
-# the model fit!
+## Try a logistic regression but only using 
+## predictors that have good correlations
 
-# how did it do?
+fs1.lr <- glm(rich ~ ., family = "binomial", data = df.fs1)
+
+                # the model fit!
+                # how did it do?
+
 confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
-                reference = df.fs1$rich)
-# ~80%, about the same as the PC reduction. 
+                reference = df.fs1$rich
+                )
+
+                # ~80%, about the same as the PC reduction. 
 
 
 ## Can you think of problems with this analysis?
