@@ -327,8 +327,8 @@ svmGrid <- expand.grid(.sigma = c(1, 0.1, 0.05),
 
 # Tying it all together
 set.seed(123)
-mod6 <- train(x = as.matrix(df.sub[,2:31]),
-              y = as.factor(df.sub$rich),
+mod6 <- train(x = as.matrix(df.train[,2:34]),
+              y = as.factor(df.train$rich),
               method = "svmRadial",
               tuneGrid = svmGrid,
               trControl = cvCtrl)
@@ -344,12 +344,11 @@ print(mod6) # Inspect the model summary
 
 
 # test the fancier model on the left out participants
-mod6.out <- predict(mod6, newdata = df.rest[,2:31])
+mod6.out <- predict(mod6, newdata = df.test[,2:34])
 
 # see how well it did
-confusionMatrix(data = mod6.out, reference = df.rest$rich)
+confusionMatrix(data = mod6.out, reference = df.test$rich)
 
-# seems like it did even better, even tho we may have concerns about overfitting
 
 
 
