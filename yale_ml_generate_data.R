@@ -1,14 +1,29 @@
-### Introduction to Machine Learning
-###  Yale University
-###  Author: Adam Chekroud
+################################################################################
+### Machine Learning in R
+###
+### AUTHOR: Adam Chekroud
+###
+### Description: Generates data set for ML practice
+################################################################################
 
-#### script to generate the data set
+### ########
+### Packages
+### ########
 
-# load necessary libraries
-# use these commands to install packages on your local machine
-# install.packages('caret')
-# install.packages('dplyr')
-library(caret); library(dplyr)
+## load necessary libraries
+## use these commands to install packages on your local machine
+
+## install.packages('caret')
+## install.packages('dplyr')
+
+library("caret")
+library("dplyr")
+
+### #############
+### Generate Data
+### #############
+
+set.seed(1)
 
 ## Generate data
 set.seed(1)
