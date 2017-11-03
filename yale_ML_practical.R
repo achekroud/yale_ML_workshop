@@ -266,18 +266,19 @@ coef(svm1$finalModel) %>% head()
 
 
 
-
-#####
-
-##  Next we will learn how to fit models using cross-validation
-##      tools that are built in automatically.
-
+### ##################
+### Comparing Learners
+### ##################
 
 
 
 ## First we set up cross-validation procedures that we want
-#   We will give these instructions to the train command later.
-cvCtrl <- trainControl(method = "cv", number = 10, classProbs = TRUE)   # see help for other CV
+##   We will give these instructions to the train command later.
+
+cvCtrl <- trainControl(method = "cv", 
+                       number = 10, 
+                       classProbs = TRUE
+                       )   # see help for other CV
 
 
 ### The train command is the core function in caret
@@ -295,116 +296,278 @@ cvCtrl <- trainControl(method = "cv", number = 10, classProbs = TRUE)   # see he
 
 
 # lets see this in practice!
+
+# LDA learner
 set.seed(1)
-mod1 <- train(x = as.matrix(df.train[,2:34]),
+
+mod1 <- train(x = as.matrix(df.train[,-1]),
               y = as.factor(df.train$rich),
               method = "lda",
-              trControl = cvCtrl)
+              trControl = cvCtrl
+              )
 
-## inspect structure of model we built (broadly, don't worry too much)
+                      ## inspect structure of model we built
+                      ## (broadly, don't worry too much)
 
 ## remember getTrainPerf?
-getTrainPerf(mod1) #not great! this is the average cross-validated performance
+getTrainPerf(mod1)
 
-
+                      # not great! this is the
+                      # average cross-validated performance
 
 ## Once you have the framework set up, changing algorithm is trivial
-#   Here is an SVM
+
+## SVM learner
+
 set.seed(1)
-mod2 <- train(x= as.matrix(df.train[,2:34]),
+
+mod2 <- train(x = as.matrix(df.train[, -1]),
               y = as.factor(df.train$rich),
               method = "svmLinear2",
-              trControl = cvCtrl)
-getTrainPerf(mod2) # SVM did about the same as LDA
+              trControl = cvCtrl
+)
 
-#   Here is k-NN (not run), as an example of how you can try other models
-# set.seed(2)
-# mod3 <- train(x= as.matrix(df.train[,2:31]),
-#               y = as.factor(df.train$rich),
-#               method = "knn",
-#               trControl = cvCtrl)
-# getTrainPerf(mod3) # kNN actually did much better than other methods
+getTrainPerf(mod2)
+# SVM did about the same as LDA
 
-# Sometimes you need additional libraries to run certain non-standard models
+## KNN learner
 
-##### advanced - see all the available algorithms (over 100) ####
+set.seed(1)
+
+mod3 <- train(x = as.matrix(df.train[, -1]),
+              y = as.factor(df.train$rich),
+              method = "knn",
+              trControl = cvCtrl
+)
+
+getTrainPerf(mod3) # kNN actually did much better than other methods
+
+## Random Forest learner
+
+set.seed(1)
+
+mod4 <- train(x = as.matrix(df.train[, -1]),
+              y = as.factor(df.train$rich),
+              method = "rf",
+              trControl = cvCtrl
+)
+
+getTrainPerf(mod4)
+
+## Neural Network learner
+
+set.seed(1)
+
+mod5 <- train(x = as.matrix(df.train[, -1]),
+              y = as.factor(df.train$rich),
+              method = "nnet",
+              trControl = cvCtrl
+)
+
+getTrainPerf(mod5)
+
+## Naive Bayes learner
+
+set.seed(1)
+
+mod6 <- train(x = as.matrix(df.train[, -1]),
+              y = as.factor(df.train$rich),
+              method = "bayesglm",
+              trControl = cvCtrl
+)
+
+getTrainPerf(mod6)
+
+### ########################
+### Out of Sample Prediction
+### ########################
+
+## Once you have reached this point, you are ready to test your best algorithm
+##    on some unseen data to see how well it performs
+
+
+## The caret model structure can be used to predict new outcomes
+##     there is a function called predict that you use to make predictions with a model
+
+mod2$method
+mod2.out <- predict(mod2, newdata = df.test[ -1])
+confusionMatrix(data = mod2.out, reference = df.test$rich)
+
+mod3$method
+mod3.out <- predict(mod3, newdata = df.test[ -1])
+confusionMatrix(data = mod3.out, reference = df.test$rich)
+
+mod4$method
+mod4.out <- predict(mod4, newdata = df.test[ -1])
+confusionMatrix(data = mod4.out, reference = df.test$rich)
+
+mod5$method
+mod5.out <- predict(mod5, newdata = df.test[ -1])
+confusionMatrix(data = mod5.out, reference = df.test$rich)
+
+mod6$method
+mod6.out <- predict(mod6, newdata = df.test[ -1])
+confusionMatrix(data = mod6.out, reference = df.test$rich)
+
+
+
+
+
+
+
+
+
+### #################################
+### Moving beyond basic `caret` usage
+### #################################
+
+## https://topepo.github.io/caret/
+
+## Sometimes you need additional packages to run certain non-standard models
+
 ## This is a little obscure, but here we can check what models are available
 #    if we wanted to do classification/or dual use
+
 t <- getModelInfo()
-m <- list();
+m <- list()
 for (i in names(t)){
   if (t[[i]]$type != "Regression"){
     m <- c(m, t[i])
   }
 }
 names(m)[1:5]
-#####
+names(m)
+
 
 
 ## You can also change the cross-validation framework FYI
-# here is an example of leave-one-out CV
-# mod5 <- train(x= as.matrix(df.train[,2:34]),
-#               y = as.factor(df.train$rich),
-#               method = "svmLinear",
-#               trControl = trainControl(method="LOOCV"))
-# # it is typically very slow. don't run it.
+## here is an example of leave-one-out CV
+
+areyoupatient <- FALSE
+
+if (areyoupatient) {
+  modLOO <- train(x= as.matrix(df.train[, -1]),
+                  y = as.factor(df.train$rich),
+                  method = "svmLinear",
+                  trControl = trainControl(method="LOOCV")
+                  )
+                                  # it is typically very slow. don't run
+                                  # it. there are as many folds /
+                                  # re-estimations as there are
+                                  # observations
+  }
 
 
-## Once you have reached this point, you are ready to test your best
-##    algorithm on some unseen data to see how well it performs
+### ######################
+### Tuning Hyperparameters
+### ######################
 
-
-## The caret model structure can be used to predict new outcomes 
-#     there is a function called predict that you use to make predictions with a model
-mod2.out <- predict(mod2, newdata = df.test[,2:34])
-
-# check accuracy on the second half of the class
-confusionMatrix(data = mod2.out, reference = df.test$rich)
-
-
-
-
-
-
-
-#### Advanced
 ## We mentioned briefly in the workshop that some algorithms require tuning
 #    Best way to do this is to pre-specify a grid of all the parameter
 #    combinations that you want to try, and choose the best through CV
 
-# Hyperparameter grid (aka tuning grid) can be set up easily
-# Example with radial SVM 
-#   - visit caret docs for detail:
-#     http://topepo.github.io/caret/modelList.html
+## Hyperparameter grid (aka tuning grid) can be set up easily
+## Example with random forests
+##   - visit caret docs for detail:
+##     http://topepo.github.io/caret/modelList.html
 
-svmGrid <- expand.grid(.sigma = c(1, 0.1, 0.05),
-                       .C = c(1.0, 0.5, 0.1, 0.05))
+## The "catch" is that tuning varies from learning algorithm to learning
+## algorithm.
 
-# We just have to pass this tuning grid to the train command (w/ CV)
+## Tying it all together
 
-# Tying it all together
 set.seed(123)
-mod6 <- train(x = as.matrix(df.train[,2:34]),
-              y = as.factor(df.train$rich),
-              method = "svmRadial",
-              tuneGrid = svmGrid,
-              trControl = cvCtrl)
-getTrainPerf(mod6) 
 
-print(mod6) # Inspect the model summary
-# parameter tuning seemed to help here because the defaults were inappropriate for these data
-# it takes time/experience to get used to tuning algorithms.
+modDef <- train(x = as.matrix(df.train[, -1]),
+                y = as.factor(df.train$rich),
+                method = "rf",
+                trControl = cvCtrl
+)
+# default hyperparameter for number of
+# variables to include in individual
+# model
+#
+# default is 3 different values
 
-# what do you think about this model? good? real? why?
+print(modDef)
+
+getTrainPerf(modDef)
+
+
+set.seed(123)
+
+modNoGrid <- train(x = as.matrix(df.train[, -1]),
+                   y = as.factor(df.train$rich),
+                   method = "rf",
+                   tuneLength = 10,
+                   trControl = cvCtrl
+)
+#
+# same behavior, but for 10 values
+
+print(modNoGrid)
+
+getTrainPerf(modNoGrid)
+
+## Now, we explicitly explore part of the hyperparameter space
+
+rfGrid <- expand.grid(mtry = seq(3, 21, by = 3))
+
+set.seed(123)
+
+modGrid <- train(x = as.matrix(df.train[, -1]),
+                 y = as.factor(df.train$rich),
+                 method = "rf",
+                 tuneGrid = rfGrid,
+                 trControl = cvCtrl
+)
+
+print(modGrid)
+
+getTrainPerf(modGrid)
 
 
 
+rfGrid2 <- expand.grid(mtry = seq(3, 10, by = 1))
 
-# test the fancier model on the left out participants
-mod6.out <- predict(mod6, newdata = df.test[,2:34])
+set.seed(123)
 
-# see how well it did
-confusionMatrix(data = mod6.out, reference = df.test$rich)
+modGrid2 <- train(x = as.matrix(df.train[, -1]),
+                  y = as.factor(df.train$rich),
+                  method = "rf",
+                  tuneGrid = rfGrid2,
+                  trControl = cvCtrl
+)
+
+print(modGrid2)
+
+getTrainPerf(modGrid2)
+
+
+## Out of Sample Comparison of Fit for Various Tuning Runs
+
+modDef$bestTune
+modDef.out <- predict(modDef, newdata = df.test[ -1])
+confusionMatrix(data = modDef.out, reference = df.test$rich)
+
+modNoGrid$bestTune
+modNoGrid.out <- predict(modNoGrid, newdata = df.test[ -1])
+confusionMatrix(data = modNoGrid.out, reference = df.test$rich)
+
+modGrid$bestTune
+modGrid.out <- predict(modGrid, newdata = df.test[ -1])
+confusionMatrix(data = modGrid.out, reference = df.test$rich)
+
+modGrid2$bestTune
+modGrid2.out <- predict(modGrid2, newdata = df.test[ -1])
+confusionMatrix(data = modGrid2.out, reference = df.test$rich)
+
+## parameter tuning seemed to help here because the defaults were inappropriate
+## for these data it takes time/experience to get used to tuning algorithms
+
+################################################################################
+################################################################################
+################################################################################
 
 
 
