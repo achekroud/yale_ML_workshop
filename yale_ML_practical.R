@@ -1,36 +1,60 @@
-### Introduction to Machine Learning
-###  Yale University
-###  Author: Adam Chekroud
+################################################################################
+### Machine Learning in R
+###
+### AUTHOR: Adam Chekroud
+################################################################################
 
-##############
-##############
-######### Set working directory to the repository you downloaded
+### ######
+### Set up
+### ######
+
+## Set the working directory to where this script lives. Details by machine will
+## vary.
 
 wd <- setwd("/Users/adamchekroud/Documents/PhD/PhD_Core/Teaching/yale_ml_workshop")
 
-##############
-##############
+### ########
+### Packages
+### ########
 
-# Load libraries
-# use these commands to install packages on your local machine
-# install.packages('caret')
-# install.packages('dplyr')
-# install.packages('ggplot2')
-# install.packages('e1071')
-library(ggplot2); library(caret); library(dplyr); library(e1071)
+## use these commands to install packages on your local machine
 
-## Read in class data
-#     Data contains sociodemographics, medical history, and color prefs,
-#     for 100 people bunch of people surveyed last week.
-#     The outcome of interest here is whether they self-identify as rich
-#     The class were split into two equal groups, called training and testing
+## install.packages('caret')
+## install.packages('dplyr')
+## install.packages('ggplot2')
+## install.packages('e1071')
+
+library("ggplot2")
+library("caret")
+library("dplyr")
+library("e1071")
+
+### ############
+### Read in Data
+### ############
+
+##     Data contains sociodemographics, medical history, and color prefs,
+##     for 100 people people surveyed last week.
+##     The outcome of interest here is whether they self-identify as rich
+##     The class were split into two equal groups, called training and testing
 
 # Read data
-df.train      <- read.csv(file.path(wd, "class_training_data.csv"), as.is=TRUE)
+df.train      <- read.csv(file.path(wd, "input/class_training_data.csv"),
+                          as.is=TRUE
+                          )
+
 df.train$rich <- as.factor(df.train$rich)
 
+                    # tell R to treat binary outcome as a
+                    # factor
+
+
+### ###########
+### Review Data
+### ###########
+
 ## View data in Rstudio
-# View(df)
+## View(df)
 
 ## View top of data frame in console
 head(df.train[,1:7])
@@ -40,43 +64,63 @@ complete.cases(df.train) %>% table()
 
 ## Do higher income ppl identify as rich?
 ggplot(data = df.train) + 
-  geom_boxplot(aes(y = income, x = rich)) + coord_flip()
+  geom_boxplot(aes(y = income, x = rich)) +
+  coord_flip()
+
+### ##############
+### Basic Analysis
+### ##############
 
 ## Typical approach: logistic regression
 lr1 <- glm(rich ~ ., family = "binomial", data = df.train)
 summary(lr1)
-# It didn't work! 
-#    The model failed because there were too many variables in
-#    the model and it found perfect separation
+
+## It didn't work! 
+##    The model failed because there were too many variables in
+##    the model and it found perfect separation
 
 
-# Maybe we should have tried to do feature selection. 
-# Lets try Principle Components Analysis
+
+### ####################################
+### Feature Selection/Variable Selection
+### ####################################
+
+
+
+## Maybe we should have tried to do feature selection. 
+## Lets try Principle Components Analysis
+
 pca1  <- prcomp(df.train[,-1])
 df.pc <- pca1$x %>% as.data.frame()
-# Take top 10 components (guess)
+
+## Take top 10 components (guess)
 df.pc <- df.pc[,1:11]
-# Put rich back in
+
+## Put rich (outcome) back in
 df.pc$rich <- df.train$rich
 
-# Try the logistic regression again?
+## Try the logistic regression again?
 pc.LR <- glm(rich ~ ., family = "binomial", data = df.pc)
 summary(pc.LR)
-# Yay! Reducing the dimensionality of the problem (using PCA) allowed us to fit the model 
 
-# Lets see how well the model did! 
+##  Yay! 
+##    Reducing the dimensionality of the problem (using PCA)
+##    allowed us to fit the model 
 
-# Extract the predictions
+## Lets see how well the model did! 
+
+## Extract the predictions
 pc.LR.out <- pc.LR$fitted.values
 
-# Threshold the predictions, since we have a binary outcome
+## Threshold the predictions, since we have a binary outcome
 pc.LR.out <- ifelse(pc.LR.out < 0.5, "no", "yes")
 
-# Confusion Matrices are really easy! Use this function!
+## Confusion Matrices are really easy! Use this function!
 confusionMatrix(data = pc.LR.out, reference = df.train$rich)
 
-# Accuracy of ~82%. This looks promising! 
-#   -- In practice, dimensionality reduction is hard. We may have got lucky.
+## Accuracy of ~82%. This looks promising! 
+##   -- In practice, dimensionality reduction is hard.
+##      We may have got lucky here.
 
 
 
