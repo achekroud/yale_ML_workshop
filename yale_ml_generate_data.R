@@ -27,8 +27,13 @@ names(df)[20:ncol(df)] <- letters[1:15]
 
 df$female <- ifelse(df$female < median(df$female), "0", "1")
 df$income <- -1 * df$income
-write.csv(df[1:50, ], file.path(getwd(), "class_training_data.csv")) 
-write.csv(df[51:100, ], file.path(getwd(), "class_testing_data.csv")) 
+
+write.csv(df[1:50, ], 
+          file.path(getwd(), "class_training_data.csv"),
+          row.names = FALSE) 
+write.csv(df[51:100, ],
+          file.path(getwd(), "class_testing_data.csv"),
+          row.names = FALSE) 
 
 # glm(rich ~ . , data = df[1:50,], family = "binomial") %>% summary() # LR fails (intentionally) 
 

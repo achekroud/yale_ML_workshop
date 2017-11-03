@@ -21,13 +21,19 @@ library(ggplot2); library(caret); library(dplyr); library(e1071)
 
 ## Read in class data
 #     Data contains sociodemographics, medical history, and color prefs,
-#     for 250 people bunch of people surveyed last week.
+#     for 100 people bunch of people surveyed last week.
 #     The outcome of interest here is whether they self-identify as rich
+#     The class were split into two equal groups, called training and testing
 
-df <- read.csv("~/class_data.csv", as.is=TRUE)
-df$X <- NULL
-df$rich <- as.factor(df$rich)
+# Set your working directory wherever you downloaded the folder
+wd <- setwd("/Users/adamchekroud/Documents/PhD/PhD_Core/Teaching/yale_ml_workshop")
 
+# Read in the class data
+df.train      <- read.csv(file.path(wd, "class_training_data.csv"), as.is=TRUE)
+df.train$rich <- as.factor(df.train$rich)
+
+df.test      <- read.csv(file.path(wd, "class_training_data.csv"), as.is=TRUE)
+df.test$rich <- as.factor(df.train$rich)
 
 ## View data in Rstudio
 # View(df)
@@ -64,11 +70,6 @@ confusionMatrix(data = lr1.bin.out, reference = df$rich)
 # 78% Accuracy! Not bad! 
 
 
-# but what if we had more than 15 variables, and instead had 30?
-rand1 <- df[,2:16] + matrix(nrow = 100, ncol = 15, rnorm(15*100))
-rand2 <- df[,2:16] + matrix(nrow = 100, ncol = 15, rnorm(15*100))
-df2 <- cbind(df, rand1, rand2)
-names(df2)[17:46] <- c(paste0(names(df[2:16]), "_2"), paste0(names(df[2:16]), "_3"))
 
 
 # run another logistic regression, with 30 predictors and 100 subjects
