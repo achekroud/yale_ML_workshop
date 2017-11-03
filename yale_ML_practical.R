@@ -39,91 +39,96 @@ df.test$rich <- as.factor(df.train$rich)
 # View(df)
 
 ## View top of data frame in console
-head(df[,1:7])
+head(df.train[,1:7])
 
 ## Any missing data?
-complete.cases(df) %>% table()
+complete.cases(df.train) %>% table()
 
 ## Do higher income ppl identify as rich?
-ggplot(data = df) + 
+ggplot(data = df.train) + 
   geom_boxplot(aes(y = income, x = rich)) + coord_flip()
 
 ## Typical approach: logistic regression
-lr1 <- glm(rich ~ ., family = "binomial", data = df)
+lr1 <- glm(rich ~ ., family = "binomial", data = df.train)
 summary(lr1)
-# In this case, we would probably stop here!
+# It didn't work! 
+#    The model failed because there were too many variables in
+#    the model and it found perfect separation
 
 # extract fitted values, see how well they predict feeling rich
 lr1.out <- fitted(lr1)
 
-# looks pretty good, considerable separation according to our predicted values
-ggplot(data = cbind(df, lr1.out)) + 
-  geom_boxplot(aes(y = lr1.out, x = rich), width = 0.2 ) + 
-  coord_flip()
-
-# Threshold the predictions, since we have a binary outcome
-lr1.bin.out <- ifelse(lr1.out < 0.5, "no", "yes")
-
-# Confusion Matrices are really easy! Use this function!
-confusionMatrix(data = lr1.bin.out, reference = df$rich)
-
-# 78% Accuracy! Not bad! 
-
-
-
-
-# run another logistic regression, with 30 predictors and 100 subjects
-lr2 <- glm(rich ~ ., family = "binomial", data = df2)
-# doesn't work! 
-
 # Maybe we should have tried to do feature selection. 
 # Lets try Principle Components Analysis
-df.pc <- prcomp(df2[,-1])$x %>% as.data.frame()
+df.pc <- prcomp(df.train[,-1])$x %>% as.data.frame()
 # Take top 10 components (guess)
 df.pc <- df.pc[,1:11]
 # Put rich back in
-df.pc$rich <- df2$rich
+df.pc$rich <- df.train$rich
 
 # Try the logistic regression again?
 pc.LR <- glm(rich ~ ., family = "binomial", data = df.pc)
 summary(pc.LR)
 # Yay! Reducing the dimensionality of the problem (using PCA) allowed us to fit the model 
 
+# Lets see how well the model did! 
+
 # Extract the predictions
 pc.LR.out <- pc.LR$fitted.values
-# Threshold them
+
+# Threshold the predictions, since we have a binary outcome
 pc.LR.out <- ifelse(pc.LR.out < 0.5, "no", "yes")
 
 # Confusion Matrices are really easy! Use this function!
-confusionMatrix(data = pc.LR.out, reference = df.pc$rich)
+confusionMatrix(data = pc.LR.out, reference = df.train$rich)
 
-# Accuracy of ~72%. This is less than we had in the first place! Dimensionality reduction is hard. 
+# Accuracy of ~82%. This looks promising! 
+#   -- In practice, dimensionality reduction is hard. We may have got lucky.
+
+
+
+
 
 
 # What if we want to try again, but keep it in original feature space (not PCs)? 
 # Lets try a univariate filter (Pearson correlation)
 
 # correlate each variable with the outcome
-correlations <- sapply(names(df2)[2:31], function(i) cor(as.numeric(df2[,i]), as.numeric(df2$rich)))
+correlations <- sapply(names(df.train)[2:34], 
+                       function(i) cor(as.numeric(df.train[,i]), as.numeric(df.train$rich)))
 # what happened?
 summary(correlations)
-# some modest correlations. lets only keep |z| > 0.1?
 
+# some modest correlations. lets only keep |z| > 0.2?
+fs1 <- names(correlations)[(correlations > 0.2) | (correlations < -0.2)]
+df.fs1 <- dplyr::select(df.train, one_of(c("rich", fs1)))
 
-fs1 <- names(correlations)[(correlations > 0.1) | (correlations < -1.5)]
-df.fs1 <- dplyr::select(df2, one_of(c("rich", fs1)))
-
-# stronger predictors, logistic regression
+# Try a logistic regression but only using predictors that have good correlations
 fs1.lr <- glm(rich ~ ., family = "binomial", data = df.fs1)
-# how was it?
-confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"), reference = df.fs1$rich)
-# ~80%, better than the PC reduction, but not much better than the original model. 
+# the model fit!
+
+# how did it do?
+confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
+                reference = df.fs1$rich)
+# ~80%, about the same as the PC reduction. 
 
 
 ## Can you think of problems with this analysis?
 #     performance measures were very high- why?
 
+
+
+
+# Model Validation -- how do models perform on unseen data?
+
+# Lets try testing our out models 
+
+
+
 ##### This section is beyond intro #####
+
+
+
 # Code to do cross-validated univariate feature selection using ANOVA
 # Really slow, computationally unstable if fitted model is complicated (only LDA ran)
 # Code for RFE is similar but worse
