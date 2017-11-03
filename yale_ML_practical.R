@@ -6,20 +6,25 @@
 ##############
 ######### Set working directory to the repository you downloaded
 
-setwd("~/Documents/PhD/PhD_Core/Teaching/yale_ml_workshop")
+setwd("~/")
 
 ##############
 ##############
 
 # Load libraries
-library(ggplot2); library(caret); library(dplyr) 
+# use these commands to install packages on your local machine
+# install.packages('caret')
+# install.packages('dplyr')
+# install.packages('ggplot2')
+# install.packages('e1071')
+library(ggplot2); library(caret); library(dplyr); library(e1071)
 
 ## Read in class data
 #     Data contains sociodemographics, medical history, and color prefs,
 #     for 250 people bunch of people surveyed last week.
 #     The outcome of interest here is whether they self-identify as rich
 
-df <- read.csv("class_data.csv", as.is=TRUE)
+df <- read.csv("~/class_data.csv", as.is=TRUE)
 df$X <- NULL
 df$rich <- as.factor(df$rich)
 
@@ -60,8 +65,11 @@ confusionMatrix(data = lr1.bin.out, reference = df$rich)
 
 
 # but what if we had more than 15 variables, and instead had 30?
-df2 <- cbind(df, (df[,2:16] + matrix(nrow = 100, ncol = 15, rnorm(15*100))))
-names(df2)[17:31] <- paste0(names(df[2:16]), "_2")
+rand1 <- df[,2:16] + matrix(nrow = 100, ncol = 15, rnorm(15*100))
+rand2 <- df[,2:16] + matrix(nrow = 100, ncol = 15, rnorm(15*100))
+df2 <- cbind(df, rand1, rand2)
+names(df2)[17:46] <- c(paste0(names(df[2:16]), "_2"), paste0(names(df[2:16]), "_3"))
+
 
 # run another logistic regression, with 30 predictors and 100 subjects
 lr2 <- glm(rich ~ ., family = "binomial", data = df2)
@@ -118,20 +126,22 @@ confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"), referenc
 # Code to do cross-validated univariate feature selection using ANOVA
 # Really slow, computationally unstable if fitted model is complicated (only LDA ran)
 # Code for RFE is similar but worse
-mySBF <- caretSBF
-mySBF$filter <- function(score, x, y) { score <= 0.00001 }
 
-sbf1 <- sbf(x = as.matrix(df[,2:390]), y = as.factor(df$Sex),
-            method = "lda",
-            trControl = trainControl(method = "none", 
-                                     classProbs = TRUE),
-            sbfControl = sbfControl(functions = mySBF,
-                                    method = "cv"))
+### TODO
+# mySBF <- caretSBF
+# mySBF$filter <- function(score, x, y) { score <= 0.00001 }
+
+# sbf1 <- sbf(x = as.matrix(df[,2:16]), y = as.factor(df$sex),
+#             method = "lda",
+#             trControl = trainControl(method = "none", 
+#                                      classProbs = TRUE),
+#             sbfControl = sbfControl(functions = mySBF,
+#                                    method = "cv"))
 # 94% average test fold performance with small SD
 # almost all variables were kept
 # what might we do to change this? new score, multivariate filter, RFE, different scoring function
+### END TODO
 
-#####
 
 ## Another approach is to use an actual model to rank features,
 ##    using just a subset of the data
