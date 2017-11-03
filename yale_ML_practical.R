@@ -133,7 +133,7 @@ confusionMatrix(data = pc.LR.out,
 ## Lets try a univariate filter (Pearson correlation)
 
 # correlate each variable with the outcome
-correlations <- sapply(names(df.train)[2:34], 
+correlations <- sapply(names(df.train)[-1], 
                        function(i) cor(as.numeric(df.train[,i]), as.numeric(df.train$rich))
                        )
 
@@ -174,14 +174,20 @@ confusionMatrix(data = ifelse(fs1.lr$fitted.values < 0.5, "no", "yes"),
 # Lets try testing our out models on the second half of the class!
 
 # Read in the second half of the class data
-df.test      <- read.csv(file.path(wd, "class_testing_data.csv"), as.is=TRUE)
+df.test      <- read.csv(file.path(wd, "class_testing_data.csv"),
+                         as.is=TRUE
+                         )
+
 df.test$rich <- as.factor(df.test$rich)
 
 
 ## First we will test our PCA approach
 
 # Apply the learned PCA matrix to the test data
-df.test.PC <- predict(pca1, newdata = df.test[ , -1])[,1:11] %>% as.data.frame
+df.test.PC <- predict(pca1, 
+                      newdata = df.test[ , -1]
+                      )[,1:11] %>% 
+                          as.data.frame
 
 # Predict `rich` using the PC logistic regression
 test.PC.out <- predict(pc.LR, newdata = df.test.PC, type = "response")
@@ -198,19 +204,25 @@ confusionMatrix(data = test.PC.out, reference = df.test$rich)
 ## Next we will test our simple feature selection approach
 
 # Make predictions only using predictors that had good correlations in training data
-fs1.test <- predict(fs1.lr, newdata = df.test[fs1], type = "response")
+fs1.test <- predict(fs1.lr, 
+                    newdata = df.test[fs1], 
+                    type = "response"
+                    )
 
 # Threshold the predictions
 test.fs1.out <- ifelse(fs1.test < 0.5, "no", "yes")
 
 # how did it do?
 confusionMatrix(data = test.fs1.out,
-                reference = df.test$rich)
+                reference = df.test$rich
+                )
 
 # This performed even worse!
 
 # Can you think of reasons why?
 
+## Another approach is to use an actual model to rank features,
+##    using some of the data
 
 
 
@@ -218,58 +230,9 @@ confusionMatrix(data = test.fs1.out,
 ##### This section is beyond intro #####
 
 
-
-# Code to do cross-validated univariate feature selection using ANOVA
-# Really slow, computationally unstable if fitted model is complicated (only LDA ran)
-# Code for RFE is similar but worse
-
-
-# mySBF <- caretSBF
-# mySBF$filter <- function(score, x, y) { score <= 0.00001 }
-
-# sbf1 <- sbf(x = as.matrix(df.train[,2:34]), y = as.factor(df.train$rich),
-#             method = "lda",
-#             trControl = trainControl(method = "none", 
-#                                      classProbs = TRUE),
-#             sbfControl = sbfControl(functions = mySBF,
-#                                    method = "cv"))
-# 94% average test fold performance with small SD
-# almost all variables were kept
-# what might we do to change this? new score, multivariate filter, RFE, different scoring function
-
-
-## Another approach is to use an actual model to rank features,
-##    using just a subset of the data
-
-# There is a function called createDataPartition that creates random 
-#   splits of the data, and balances class outcomes between the two splits
-
-# Fit a model in the subset
-svm1 <- train(x= as.matrix(df.train[,2:34]), y = as.factor(df.train$rich),
-                        method = "svmLinear")
-# How did it do? getTrainPerf will go and get the performance metrics quickly for you
-getTrainPerf(svm1)
-# can also print the model output
-print(svm1)
-
-# Extract variable importance from the model
-plot(varImp(svm1))                             # all of the predictors!
-plot(varImp(svm1), top = 10)                   # Just top 10, scaled
-plot(varImp(svm1, scale = FALSE), top = 10)    # Can have raw importance
-
-# Can extract raw coefficients for the final model
-coef(svm1$finalModel) %>% head()
-# I would usually rank/analyse these, and then take the names of the best ones for further modeling
-
-
-
-
-
-
 ### ##################
 ### Comparing Learners
 ### ##################
-
 
 
 ## First we set up cross-validation procedures that we want
@@ -340,7 +303,7 @@ mod3 <- train(x = as.matrix(df.train[, -1]),
               trControl = cvCtrl
 )
 
-getTrainPerf(mod3) # kNN actually did much better than other methods
+getTrainPerf(mod3)
 
 ## Random Forest learner
 
@@ -352,7 +315,8 @@ mod4 <- train(x = as.matrix(df.train[, -1]),
               trControl = cvCtrl
 )
 
-getTrainPerf(mod4)
+getTrainPerf(mod4) # not great! 
+
 
 ## Neural Network learner
 
@@ -377,6 +341,7 @@ mod6 <- train(x = as.matrix(df.train[, -1]),
 )
 
 getTrainPerf(mod6)
+
 
 ### ########################
 ### Out of Sample Prediction
@@ -409,7 +374,7 @@ mod6$method
 mod6.out <- predict(mod6, newdata = df.test[ -1])
 confusionMatrix(data = mod6.out, reference = df.test$rich)
 
-
+## almost all of these models had serious overfitting issues!
 
 
 
@@ -483,11 +448,11 @@ modDef <- train(x = as.matrix(df.train[, -1]),
                 method = "rf",
                 trControl = cvCtrl
 )
-# default hyperparameter for number of
-# variables to include in individual
-# model
-#
-# default is 3 different values
+                      # default hyperparameter for number of
+                      # variables to include in individual
+                      # model
+                      #
+                      # default is 3 different values
 
 print(modDef)
 
@@ -502,14 +467,14 @@ modNoGrid <- train(x = as.matrix(df.train[, -1]),
                    tuneLength = 10,
                    trControl = cvCtrl
 )
-#
-# same behavior, but for 10 values
+                      #
+                      # same behavior, but for 10 values
 
 print(modNoGrid)
 
 getTrainPerf(modNoGrid)
 
-## Now, we explicitly explore part of the hyperparameter space
+## Now, we explicitly explore parts of the hyperparameter space
 
 rfGrid <- expand.grid(mtry = seq(3, 21, by = 3))
 
@@ -527,7 +492,7 @@ print(modGrid)
 getTrainPerf(modGrid)
 
 
-
+# try smaller values of mtry, but sampling more closely?
 rfGrid2 <- expand.grid(mtry = seq(3, 10, by = 1))
 
 set.seed(123)
@@ -564,6 +529,7 @@ confusionMatrix(data = modGrid2.out, reference = df.test$rich)
 
 ## parameter tuning seemed to help here because the defaults were inappropriate
 ## for these data it takes time/experience to get used to tuning algorithms
+## overall, biggest issue in this instance is probably inappropriate algorithm selection
 
 ################################################################################
 ################################################################################

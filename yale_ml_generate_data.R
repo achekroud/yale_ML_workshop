@@ -31,7 +31,8 @@ df <- twoClassSim(n = 100,
                   linearVars = 5, 
                   noiseVars = 10,
                   corrVars = 15, 
-                  corrValue = 0.8)
+                  corrValue = 0.8
+                  )
 
 df <- df %>% 
   mutate(rich = factor(Class, labels = c("yes", "no") )) %>% # convert class variable to yes/no
@@ -51,11 +52,13 @@ df$income <- -1 * df$income
 
 write.csv(df[1:50, ], 
           file.path(getwd(), "input/class_training_data.csv"),
-          row.names = FALSE) 
+          row.names = FALSE
+          ) 
 
 write.csv(df[51:100, ],
           file.path(getwd(), "input/class_testing_data.csv"),
-          row.names = FALSE) 
+          row.names = FALSE
+          ) 
 
 # glm(rich ~ . , data = df[1:50,], family = "binomial") %>% 
 #   summary() # LR fails (intentionally) 
